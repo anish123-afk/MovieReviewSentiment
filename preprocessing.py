@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from keras_preprocessing.text import Tokenizer
+from keras_preprocessing.sequence import pad_sequences
+from sklearn.model_selection import train_test_split
 
 # cleaning 
 df = EDA.df
@@ -30,22 +32,20 @@ def cleaning_dataset():
     return df
 
 df = cleaning_dataset()
-print(df['clean'][0])
-print(df['review'][0])
 
 
-def tokenizing():
-    df['np_sequences'] = None
-    
-    tokenizer = Tokenizer(num_words= 150000, oov_token="OOV")
-    tokenizer.fit_on_texts(df['clean'])
-    for i in range(len(df)):
-        review = df['clean'][i]
-        sequences = tokenizer.texts_to_sequences([review])
-        df.at[i, 'np_sequences'] = np.array(sequences)
-    return df
+tokenizer = Tokenizer(num_words=15000, oov_token="OOV")
+tokenizer.fit_on_texts(df['clean'])
 
-df = tokenizing()
-print(df['clean'][0])
-print(df['review'][0])
-print(df['np_sequences'][0])
+sequences = tokenizer.texts_to_sequences(df['clean'])   
+
+X = pad_sequences(sequences, padding="post", maxlen=400)
+y = np.where(df['sentiment'].values == 'positive', 1, 0)
+
+def train_test_val_split(X, y):
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+    X_test, X_val, y_test, y_val = train_test_split(X_temp, y_temp, test_size=1/3, random_state=42, stratify=y_temp)
+
+    return X_train, y_train, X_test, y_test, X_val, y_val
+
+X_train, y_train, X_test, y_test, X_val, y_val = train_test_val_split(X, y)
